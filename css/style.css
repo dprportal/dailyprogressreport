@@ -951,7 +951,7 @@ nav.tabs button:hover { color: var(--app-teal-dark); }
 .sw-btn-block { width: 100%; }
 .sw-btn-sm { padding: 7px 11px; font-size: 12.5px; border-radius: 7px; }
 
-.actions-row { display: flex; gap: 10px; margin-top: 6px; }
+.actions-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 
 /* Checkbox */
 .sw-checkbox {
@@ -1547,7 +1547,7 @@ nav.tabs { display: none !important; }   /* replaced by the drawer */
 }
 
 /* Animated water wave under the header */
-.topbar { position: relative; overflow: hidden; }
+.topbar { position: sticky; top: 0; overflow: hidden; }
 .topbar::after {
   content: "";
   position: absolute; left: 0; right: 0; bottom: -1px; height: 16px;
@@ -1579,3 +1579,12 @@ nav.tabs { display: none !important; }   /* replaced by the drawer */
 .drawer { transition: transform .2s cubic-bezier(.22,.61,.36,1); will-change: transform; }
 .drawer-backdrop { transition: opacity .18s ease, visibility .18s ease; }
 .drawer-item { transition: background .1s ease, color .1s ease; }
+
+/* ============================================================
+   MOBILE OVERFLOW GUARD (appended)
+   Stops any wide row from dragging the page wider than the screen
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+#app, .app-content, .topbar, .view { max-width: 100%; }
+.app-content { overflow-x: clip; }      /* clip stray horizontal overflow, keeps sticky header working */
+.actions-row .sw-btn { flex: 0 1 auto; }
