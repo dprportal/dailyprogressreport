@@ -3,11 +3,11 @@
    Table Rendering | Filters | Search | Dynamic Columns
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js?v=10';
-import { State } from './auth.js?v=10';
-import { AppUtils } from './app.js?v=10';
-import { enterEditMode } from './dpr.js?v=10';
-import { buildDprMessage, whatsappShareUrl, copyTextToClipboard } from './whatsapp-share.js?v=10';
+import { DataService, COLLECTIONS } from './firebase.js?v=11';
+import { State } from './auth.js?v=11';
+import { AppUtils } from './app.js?v=11';
+import { enterEditMode } from './dpr.js?v=11';
+import { buildDprMessage, whatsappShareUrl, copyTextToClipboard } from './whatsapp-share.js?v=11';
 
 /* =============================================
    GET FILTERED DATA
@@ -65,16 +65,61 @@ function render() {
   if (!tbody || !table || !empty) return;
 
   const rows = getFilteredData();
+  const esc = AppUtils.esc;
+  const mod = (document.getElementById('filt_module') || {}).value || '';
+  const numCell = v => (v != null && v !== '') ? Number(v).toLocaleString() : '';
 
-  // Summary
-  const totalLen = rows.reduce((s, r) => s + (parseFloat(r.layingLength) || 0), 0);
+  // ---- Column set per module (so fields never mix) ----
+  const cols = [
+    { label: 'S.No', cls: 'mono', get: r => esc(r.sno || '') },
+    { label: 'Date', cls: '', get: r => esc(AppUtils.fmtDate(r.date)) }
+  ];
+  if (!mod) cols.push({ label: 'Module', cls: '', get: r => esc(r.workType || '') });
+  cols.push(
+    { label: 'Package', cls: '', get: r => `<span class="pill">Pkg ${esc(r.packageNo || '')}</span>` },
+    { label: 'Zone', cls: '', get: r => esc(r.zoneName || '') },
+    { label: 'DMA', cls: 'mono', get: r => 'DMA ' + esc(r.dma || '') }
+  );
+  if (mod === 'Pipe Laying') {
+    cols.push(
+      { label: 'Activity', cls: '', get: r => esc(r.layingWork || '') },
+      { label: 'Pipe Dia', cls: 'mono', get: r => esc(r.pipeDia || '') },
+      { label: 'Length (m)', cls: 'mono', get: r => numCell(r.layingLength) }
+    );
+  } else if (mod === 'Road Restoration') {
+    cols.push(
+      { label: 'Surface', cls: '', get: r => esc(r.surfaceType || '') },
+      { label: 'Length (m)', cls: 'mono', get: r => numCell(r.restoredLength) },
+      { label: 'Width (m)', cls: 'mono', get: r => numCell(r.restoredWidth) },
+      { label: 'Area (sqm)', cls: 'mono', get: r => numCell(r.restoredArea) }
+    );
+  } else if (mod === 'Hydro Test') {
+    cols.push(
+      { label: 'Pipe Dia', cls: 'mono', get: r => esc(r.pipeDia || '') },
+      { label: 'Tested (m)', cls: 'mono', get: r => numCell(r.testedLength) },
+      { label: 'Pressure', cls: 'mono', get: r => numCell(r.testPressure) },
+      { label: 'Result', cls: '', get: r => esc(r.testResult || '') }
+    );
+  } else {
+    cols.push({ label: 'Activity', cls: '', get: r => esc(r.layingWork || '') });
+  }
+  cols.push(
+    { label: 'Contractor', cls: '', get: r => esc(r.contractor || '') },
+    { label: 'By', cls: '', get: r => esc(r.engineerName || r.createdByName || '--') }
+  );
+
+  // Summary (length metric adapts to module)
+  let lenKey = 'layingLength', lenLabel = 'Total length', lenUnit = ' m';
+  if (mod === 'Road Restoration') { lenKey = 'restoredArea'; lenLabel = 'Total area'; lenUnit = ' sqm'; }
+  else if (mod === 'Hydro Test') { lenKey = 'testedLength'; lenLabel = 'Total tested'; lenUnit = ' m'; }
+  const totalLen = rows.reduce((s, r) => s + (parseFloat(r[lenKey]) || 0), 0);
   const totalMan = rows.reduce((s, r) => s + (parseInt(r.manpower) || 0), 0);
 
   const summaryEl = document.getElementById('logSummary');
   if (summaryEl) {
     summaryEl.innerHTML = [
       ["Entries", rows.length],
-      ["Total length", totalLen.toLocaleString(undefined, { maximumFractionDigits: 1 }) + " m"],
+      [lenLabel, totalLen.toLocaleString(undefined, { maximumFractionDigits: 2 }) + lenUnit],
       ["Manpower logged", totalMan.toLocaleString()],
       ["Packages active", new Set(rows.map(r => r.packageNo)).size]
     ].map(([l, v]) => `
@@ -95,33 +140,26 @@ function render() {
   empty.style.display = 'none';
   table.style.display = 'table';
 
+  // Header (dynamic) + Actions column
+  const head = document.getElementById('logTableHead');
+  if (head) {
+    head.innerHTML = '<tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '<th>Act</th></tr>';
+  }
+
   // Render table body
   tbody.innerHTML = rows.map(r => {
     const isAdmin = State.currentRole === 'admin';
 
     const shareBtn = `<button class="icon-btn-sm share share-dpr-btn" data-id="${r.id}" title="Share on WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>`;
-
     const editBtn = isAdmin
       ? `<button class="icon-btn-sm edit-dpr-btn" data-id="${r.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>`
       : '';
-
     const delBtn = isAdmin
       ? `<button class="icon-btn-sm del delete-dpr-btn" data-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>`
       : '';
 
-    return `<tr>
-      <td class="mono">${AppUtils.esc(r.sno || '')}</td>
-      <td>${AppUtils.esc(AppUtils.fmtDate(r.date))}</td>
-      <td><span class="pill">Pkg ${AppUtils.esc(r.packageNo || '')}</span></td>
-      <td>${AppUtils.esc(r.zoneName || '')}</td>
-      <td class="mono">DMA ${AppUtils.esc(r.dma || '')}</td>
-      <td>${AppUtils.esc(r.layingWork || '')}</td>
-      <td class="mono">${AppUtils.esc(r.pipeDia || '')}</td>
-      <td class="mono">${AppUtils.esc(r.layingLength != null ? Number(r.layingLength).toLocaleString() : '')}</td>
-      <td>${AppUtils.esc(r.contractor || '')}</td>
-      <td>${AppUtils.esc(r.engineerName || r.createdByName || '--')}</td>
-      <td><div class="log-actions-cell">${shareBtn}${editBtn}${delBtn}</div></td>
-    </tr>`;
+    const tds = cols.map(c => `<td class="${c.cls}">${c.get(r)}</td>`).join('');
+    return `<tr>${tds}<td><div class="log-actions-cell">${shareBtn}${editBtn}${delBtn}</div></td></tr>`;
   }).join('');
 
   // Attach event handlers

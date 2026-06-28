@@ -22,10 +22,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css?v=10">
-  <link rel="stylesheet" href="css/dashboard.css?v=10">
-  <link rel="stylesheet" href="css/forms.css?v=10">
-  <link rel="stylesheet" href="css/admin.css?v=10">
+  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/dashboard.css?v=11">
+  <link rel="stylesheet" href="css/forms.css?v=11">
+  <link rel="stylesheet" href="css/admin.css?v=11">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -546,7 +546,7 @@
               <div class="field" id="field-layingLength">
                 <label for="f_layingLength">Laying Length <span class="req">*</span></label>
                 <div class="unit-wrap">
-                  <input type="number" id="f_layingLength" class="sw-input" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+                  <input type="number" id="f_layingLength" class="sw-input" min="0" step="any" inputmode="decimal" placeholder="0.00" required>
                   <span>metres</span>
                 </div>
               </div>
@@ -600,14 +600,14 @@
               <div class="field" id="field-restoredLength">
                 <label for="f_restoredLength">Restored Length <span class="req">*</span></label>
                 <div class="unit-wrap">
-                  <input type="number" id="f_restoredLength" class="sw-input" min="0" step="0.1" inputmode="decimal" placeholder="0.0">
+                  <input type="number" id="f_restoredLength" class="sw-input" min="0" step="any" inputmode="decimal" placeholder="0.0">
                   <span>metres</span>
                 </div>
               </div>
               <div class="field" id="field-restoredWidth">
                 <label for="f_restoredWidth">Restored Width <span class="req">*</span></label>
                 <div class="unit-wrap">
-                  <input type="number" id="f_restoredWidth" class="sw-input" min="0" step="0.1" inputmode="decimal" placeholder="0.0">
+                  <input type="number" id="f_restoredWidth" class="sw-input" min="0" step="any" inputmode="decimal" placeholder="0.0">
                   <span>metres</span>
                 </div>
               </div>
@@ -649,14 +649,14 @@
               <div class="field" id="field-testedLength">
                 <label for="f_testedLength">Tested Length <span class="req">*</span></label>
                 <div class="unit-wrap">
-                  <input type="number" id="f_testedLength" class="sw-input" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                  <input type="number" id="f_testedLength" class="sw-input" min="0" step="any" inputmode="decimal" placeholder="0.00">
                   <span>metres</span>
                 </div>
               </div>
               <div class="field" id="field-testPressure">
                 <label for="f_testPressure">Test Pressure <span class="req">*</span></label>
                 <div class="unit-wrap">
-                  <input type="number" id="f_testPressure" class="sw-input" min="0" step="0.1" inputmode="decimal" placeholder="0.0">
+                  <input type="number" id="f_testPressure" class="sw-input" min="0" step="any" inputmode="decimal" placeholder="0.0">
                   <span>Bar</span>
                 </div>
               </div>
@@ -704,7 +704,7 @@
               </div>
               <div class="field" id="field-workTime">
                 <label for="f_workTime">Work Time (Hours) <span class="req">*</span></label>
-                <input type="number" id="f_workTime" class="sw-input" min="0" max="24" step="0.5" inputmode="decimal" placeholder="0.0" required>
+                <input type="number" id="f_workTime" class="sw-input" min="0" max="24" step="any" inputmode="decimal" placeholder="0.0" required>
               </div>
             </div>
           </div>
@@ -1196,16 +1196,16 @@
 </div>
 
 <!-- ==================== SCRIPTS ==================== -->
-<script type="module" src="js/firebase.js?v=10"></script>
-<script type="module" src="js/auth.js?v=10"></script>
-<script type="module" src="js/app.js?v=10"></script>
-<script type="module" src="js/dpr.js?v=10"></script>
-<script type="module" src="js/dashboard.js?v=10"></script>
-<script type="module" src="js/engineers.js?v=10"></script>
-<script type="module" src="js/reports.js?v=10"></script>
-<script type="module" src="js/field-editor.js?v=10"></script>
-<script type="module" src="js/export.js?v=10"></script>
-<script type="module" src="js/menu.js?v=10"></script>
+<script type="module" src="js/firebase.js?v=11"></script>
+<script type="module" src="js/auth.js?v=11"></script>
+<script type="module" src="js/app.js?v=11"></script>
+<script type="module" src="js/dpr.js?v=11"></script>
+<script type="module" src="js/dashboard.js?v=11"></script>
+<script type="module" src="js/engineers.js?v=11"></script>
+<script type="module" src="js/reports.js?v=11"></script>
+<script type="module" src="js/field-editor.js?v=11"></script>
+<script type="module" src="js/export.js?v=11"></script>
+<script type="module" src="js/menu.js?v=11"></script>
 
 <!-- ==================== PWA: service worker + install ==================== -->
 <script>

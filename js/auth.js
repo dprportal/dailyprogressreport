@@ -10,7 +10,7 @@ import {
   db,
   COLLECTIONS,
   DataService
-} from './firebase.js?v=10';
+} from './firebase.js?v=11';
 
 import {
   signInWithEmailAndPassword,
