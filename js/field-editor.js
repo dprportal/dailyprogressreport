@@ -3,9 +3,9 @@
    Admin Field Management | Drag & Drop | Dynamic Form Generation
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js';
-import { State } from './auth.js';
-import { AppUtils } from './app.js';
+import { DataService, COLLECTIONS } from './firebase.js?v=10';
+import { State } from './auth.js?v=10';
+import { AppUtils } from './app.js?v=10';
 
 /* =============================================
    DEFAULT FIELD DEFINITIONS

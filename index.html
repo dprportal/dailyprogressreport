@@ -22,10 +22,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/forms.css">
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/style.css?v=10">
+  <link rel="stylesheet" href="css/dashboard.css?v=10">
+  <link rel="stylesheet" href="css/forms.css?v=10">
+  <link rel="stylesheet" href="css/admin.css?v=10">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -201,6 +201,26 @@
   </div>
 </div>
 
+<!-- ==================== SHARE DPR MODAL (WhatsApp) ==================== -->
+<div class="sw-modal-overlay" id="modal-share">
+  <div class="sw-modal sw-modal-share">
+    <div class="sw-modal-head">
+      <h3><i class="fa-brands fa-whatsapp" style="color:#25D366"></i> Share Daily Progress Report</h3>
+      <button class="modal-close" id="share-close-btn" style="background: var(--app-slate-light); border-color: var(--app-line); color: var(--app-slate);">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="sw-modal-body">
+      <p class="share-hint">Preview of the report. Copy it or open WhatsApp to choose a contact.</p>
+      <pre id="share-preview" class="share-preview"></pre>
+    </div>
+    <div class="sw-modal-foot">
+      <button class="sw-btn sw-btn-ghost" id="share-copy-btn"><i class="fa-regular fa-copy"></i> Copy</button>
+      <button class="sw-btn sw-btn-wa" id="share-wa-btn"><i class="fa-brands fa-whatsapp"></i> Share on WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== EDIT FIELD MODAL (Admin) ==================== -->
 <div class="sw-modal-overlay" id="modal-field-edit">
   <div class="sw-modal">
@@ -321,9 +341,44 @@
 <!-- ==================== MAIN APP SHELL ==================== -->
 <div id="app">
 
+  <!-- Navigation drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="navDrawer" aria-label="Main navigation">
+    <div class="drawer-head">
+      <div class="drawer-logo"><svg class="brand-logo" aria-hidden="true"><use href="#logo-drop"></use></svg></div>
+      <div class="drawer-title">
+        <span class="drawer-eyebrow">Shimla 24x7 Water Supply</span>
+        <strong>DPR System</strong>
+      </div>
+      <button class="drawer-close" id="drawerClose" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <nav class="drawer-nav" id="drawerNav">
+      <button class="drawer-item" data-nav="dash"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></button>
+
+      <div class="drawer-group-label">DPR Entry</div>
+      <button class="drawer-item" data-module="Pipe Laying"><i class="fa-solid fa-water"></i><span>Pipe Laying</span></button>
+      <button class="drawer-item" data-module="Road Restoration"><i class="fa-solid fa-road"></i><span>Road Restoration</span></button>
+      <button class="drawer-item" data-module="Hydro Test"><i class="fa-solid fa-gauge"></i><span>Hydro Test</span></button>
+
+      <div class="drawer-group-label">Records</div>
+      <button class="drawer-item" data-nav="log"><i class="fa-solid fa-table-list"></i><span>Reports</span></button>
+
+      <div class="drawer-group-label drawer-admin-only">Administration</div>
+      <button class="drawer-item drawer-admin-only" data-nav="engineers"><i class="fa-solid fa-users-gear"></i><span>User Management</span></button>
+      <button class="drawer-item drawer-admin-only" data-nav="admin"><i class="fa-solid fa-sliders"></i><span>Settings</span></button>
+
+      <div class="drawer-spacer"></div>
+      <button class="drawer-item drawer-logout" id="drawerLogout"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+    </nav>
+  </aside>
+
   <!-- Topbar -->
   <header class="topbar">
     <div class="topbar-inner">
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
       <div class="topbar-left">
         <div class="topbar-logo"><svg class="brand-logo" aria-hidden="true"><use href="#logo-drop"></use></svg></div>
         <div class="topbar-brand">
@@ -374,6 +429,7 @@
 
     <!-- ================= ENTRY VIEW ================= -->
     <section class="view active" id="view-entry">
+      <div class="module-banner" id="moduleBanner" style="display:none;"></div>
       <div class="editing-banner" id="editingBanner">
         <i class="fa-solid fa-pen-to-square"></i>
         <span>Editing an existing entry -- saving will update this record instead of creating a new one.</span>
@@ -406,7 +462,7 @@
               </div>
             </div>
             <div class="row2">
-              <div class="field">
+              <div class="field" id="worktypeField">
                 <label for="f_worktype">Work Type <span class="req">*</span></label>
                 <select id="f_worktype" class="sw-select" required>
                   <option value="" disabled selected>Select work type</option>
@@ -556,6 +612,75 @@
                 </div>
               </div>
             </div>
+            <div class="row2">
+              <div class="field" id="field-surfaceType">
+                <label for="f_surfaceType">Surface Type <span class="req">*</span></label>
+                <select id="f_surfaceType" class="sw-select">
+                  <option value="" disabled selected>Select surface</option>
+                  <option>Concrete Road</option>
+                  <option>Bituminous Road</option>
+                  <option>Interlocking Pavers</option>
+                  <option>Earthen Surface</option>
+                  <option>Footpath</option>
+                </select>
+              </div>
+              <div class="field" id="field-restoredArea">
+                <label for="f_restoredArea">Restored Area <span class="opt">auto</span></label>
+                <div class="unit-wrap">
+                  <input type="number" id="f_restoredArea" class="sw-input" readonly placeholder="0.00">
+                  <span>sqm</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hydro Test Card (shown for Hydro Test work type) -->
+        <div class="sw-card hidden" id="card-hydro">
+          <div class="sw-card-head" style="--accent: var(--app-sky); --accent-light: var(--app-sky-light);">
+            <div class="ic"><i class="fa-solid fa-gauge-high"></i></div>
+            <div>
+              <h2>Hydro Test</h2>
+              <p class="hint">Pressure test details</p>
+            </div>
+          </div>
+          <div class="sw-card-body">
+            <div class="row2">
+              <div class="field" id="field-testedLength">
+                <label for="f_testedLength">Tested Length <span class="req">*</span></label>
+                <div class="unit-wrap">
+                  <input type="number" id="f_testedLength" class="sw-input" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                  <span>metres</span>
+                </div>
+              </div>
+              <div class="field" id="field-testPressure">
+                <label for="f_testPressure">Test Pressure <span class="req">*</span></label>
+                <div class="unit-wrap">
+                  <input type="number" id="f_testPressure" class="sw-input" min="0" step="0.1" inputmode="decimal" placeholder="0.0">
+                  <span>Bar</span>
+                </div>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field" id="field-startTime">
+                <label for="f_startTime">Start Time <span class="req">*</span></label>
+                <input type="time" id="f_startTime" class="sw-input">
+              </div>
+              <div class="field" id="field-endTime">
+                <label for="f_endTime">End Time <span class="req">*</span></label>
+                <input type="time" id="f_endTime" class="sw-input">
+              </div>
+            </div>
+            <div class="field" id="field-testResult">
+              <label for="f_testResult">Test Result <span class="req">*</span></label>
+              <select id="f_testResult" class="sw-select">
+                <option value="" disabled selected>Select result</option>
+                <option>Passed</option>
+                <option>Failed</option>
+                <option>Leakage Observed</option>
+                <option>Retesting Required</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -641,6 +766,14 @@
 
     <!-- ================= LOG VIEW ================= -->
     <section class="view" id="view-log">
+      <input type="hidden" id="filt_module" value="">
+      <div class="module-filter-bar" id="moduleFilterBar">
+        <button class="mod-chip active" data-mod="">All Modules</button>
+        <button class="mod-chip" data-mod="Pipe Laying"><i class="fa-solid fa-water"></i> Pipe Laying</button>
+        <button class="mod-chip" data-mod="Road Restoration"><i class="fa-solid fa-road"></i> Road Restoration</button>
+        <button class="mod-chip" data-mod="Hydro Test"><i class="fa-solid fa-gauge"></i> Hydro Test</button>
+      </div>
+
       <div class="summary-strip" id="logSummary"></div>
 
       <div class="filters">
@@ -705,6 +838,12 @@
         </button>
         <button class="sw-btn sw-btn-primary sw-btn-sm" id="exportExcelBtn">
           <i class="fa-solid fa-file-excel"></i> Export Excel
+        </button>
+        <button class="sw-btn sw-btn-ghost sw-btn-sm" id="printReportBtn">
+          <i class="fa-solid fa-print"></i> Print / PDF
+        </button>
+        <button class="sw-btn sw-btn-ghost sw-btn-sm" id="loadHistoryBtn" title="Loads all earlier records from the database">
+          <i class="fa-solid fa-clock-rotate-left"></i> Load older records
         </button>
       </div>
 
@@ -1057,15 +1196,16 @@
 </div>
 
 <!-- ==================== SCRIPTS ==================== -->
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/auth.js"></script>
-<script type="module" src="js/app.js"></script>
-<script type="module" src="js/dpr.js"></script>
-<script type="module" src="js/dashboard.js"></script>
-<script type="module" src="js/engineers.js"></script>
-<script type="module" src="js/reports.js"></script>
-<script type="module" src="js/field-editor.js"></script>
-<script type="module" src="js/export.js"></script>
+<script type="module" src="js/firebase.js?v=10"></script>
+<script type="module" src="js/auth.js?v=10"></script>
+<script type="module" src="js/app.js?v=10"></script>
+<script type="module" src="js/dpr.js?v=10"></script>
+<script type="module" src="js/dashboard.js?v=10"></script>
+<script type="module" src="js/engineers.js?v=10"></script>
+<script type="module" src="js/reports.js?v=10"></script>
+<script type="module" src="js/field-editor.js?v=10"></script>
+<script type="module" src="js/export.js?v=10"></script>
+<script type="module" src="js/menu.js?v=10"></script>
 
 <!-- ==================== PWA: service worker + install ==================== -->
 <script>

@@ -22,6 +22,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
   serverTimestamp,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
@@ -136,9 +137,10 @@ const DataService = {
   async getAll(collectionName, options = {}) {
     return withRetry(async () => {
       let qref = collection(db, collectionName);
-      if (options.orderBy) {
-        qref = query(qref, orderBy(options.orderBy));
-      }
+      const cons = [];
+      if (options.orderBy) cons.push(orderBy(options.orderBy, options.orderDir || 'asc'));
+      if (options.limit) cons.push(limit(options.limit));
+      if (cons.length) qref = query(qref, ...cons);
       const snap = await getDocs(qref);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     });

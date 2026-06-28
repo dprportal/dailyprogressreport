@@ -3,8 +3,13 @@
    Navigation | Utilities | Toast | Modals | Initialization
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js';
-import { State, Utils } from './auth.js';
+import { DataService, COLLECTIONS } from './firebase.js?v=10';
+import { State, Utils } from './auth.js?v=10';
+
+// How many most-recent DPR records to load on boot. Keeps Firestore reads
+// bounded (and load fast) no matter how many years of data accumulate.
+// Older records are fetched on demand from the Reports screen.
+const RECENT_DPR_LIMIT = 1000;
 
 /* =============================================
    SHARED STATE
@@ -321,14 +326,15 @@ function setupEventListeners() {
 async function loadAllData() {
   const results = await DataService.loadMultiple([
     { key: 'engineers', collectionName: COLLECTIONS.ENGINEERS, options: { orderBy: 'name' } },
-    { key: 'dprs', collectionName: COLLECTIONS.DPR, options: { orderBy: 'date' } },
+    { key: 'dprs', collectionName: COLLECTIONS.DPR, options: { orderBy: 'date', orderDir: 'desc', limit: RECENT_DPR_LIMIT } },
     { key: 'fieldDefs', collectionName: COLLECTIONS.FIELD_DEFS, options: { orderBy: 'order' } },
     { key: 'settings', collectionName: COLLECTIONS.SETTINGS }
   ]);
 
   State.engineers = results.engineers || [];
-  State.dprs = results.dprs || [];
+  State.dprs = results.dprs || [];          // already newest-first (date desc)
   State.fieldDefs = results.fieldDefs || [];
+  State.dprsFullyLoaded = false;
 
   // Process settings
   const settingsArr = results.settings || [];
@@ -340,8 +346,6 @@ async function loadAllData() {
     };
   }
 
-  // Reverse DPRs for newest first
-  State.dprs.reverse();
   State.dataLoaded = true;
 }
 
@@ -427,7 +431,7 @@ function init() {
       hideLoading();
       document.getElementById('login-screen').style.display = 'block';
     }
-  }, 500);
+  }, 250);
 }
 
 // Initialize

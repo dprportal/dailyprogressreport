@@ -3,10 +3,11 @@
    Table Rendering | Filters | Search | Dynamic Columns
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js';
-import { State } from './auth.js';
-import { AppUtils } from './app.js';
-import { enterEditMode } from './dpr.js';
+import { DataService, COLLECTIONS } from './firebase.js?v=10';
+import { State } from './auth.js?v=10';
+import { AppUtils } from './app.js?v=10';
+import { enterEditMode } from './dpr.js?v=10';
+import { buildDprMessage, whatsappShareUrl, copyTextToClipboard } from './whatsapp-share.js?v=10';
 
 /* =============================================
    GET FILTERED DATA
@@ -20,9 +21,12 @@ function getFilteredData() {
   const con = document.getElementById('filt_contractor').value;
   const eng = document.getElementById('filt_engineer').value;
   const workType = document.getElementById('filt_worktype').value;
+  const moduleEl = document.getElementById('filt_module');
+  const moduleSel = moduleEl ? moduleEl.value : '';
   const q = document.getElementById('filt_search').value.trim().toLowerCase();
 
   return (State.dprs || []).filter(r => {
+    if (moduleSel && r.workType !== moduleSel) return false;
     if (from && r.date < from) return false;
     if (to && r.date > to) return false;
     if (pkg && String(r.packageNo) !== String(pkg)) return false;
@@ -95,6 +99,8 @@ function render() {
   tbody.innerHTML = rows.map(r => {
     const isAdmin = State.currentRole === 'admin';
 
+    const shareBtn = `<button class="icon-btn-sm share share-dpr-btn" data-id="${r.id}" title="Share on WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>`;
+
     const editBtn = isAdmin
       ? `<button class="icon-btn-sm edit-dpr-btn" data-id="${r.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>`
       : '';
@@ -114,11 +120,18 @@ function render() {
       <td class="mono">${AppUtils.esc(r.layingLength != null ? Number(r.layingLength).toLocaleString() : '')}</td>
       <td>${AppUtils.esc(r.contractor || '')}</td>
       <td>${AppUtils.esc(r.engineerName || r.createdByName || '--')}</td>
-      <td><div class="log-actions-cell">${editBtn}${delBtn}</div></td>
+      <td><div class="log-actions-cell">${shareBtn}${editBtn}${delBtn}</div></td>
     </tr>`;
   }).join('');
 
   // Attach event handlers
+  tbody.querySelectorAll('.share-dpr-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const record = State.dprs.find(x => x.id === btn.dataset.id);
+      if (record) openShareModal(record);
+    });
+  });
+
   tbody.querySelectorAll('.edit-dpr-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const record = State.dprs.find(x => x.id === btn.dataset.id);
@@ -130,6 +143,40 @@ function render() {
     btn.addEventListener('click', () => confirmDelete(btn.dataset.id));
   });
 }
+
+/* =============================================
+   WHATSAPP SHARE MODAL
+   ============================================= */
+let _shareText = '';
+
+function openShareModal(record) {
+  _shareText = buildDprMessage(record);
+  const preview = document.getElementById('share-preview');
+  if (preview) preview.textContent = _shareText;
+  openModal('modal-share');
+}
+
+function initShare() {
+  const copyBtn = document.getElementById('share-copy-btn');
+  const waBtn = document.getElementById('share-wa-btn');
+  const closeBtn = document.getElementById('share-close-btn');
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const ok = await copyTextToClipboard(_shareText);
+      AppUtils.toast(ok ? 'Report copied to clipboard.' : 'Could not copy. Select and copy manually.', !ok);
+    });
+  }
+  if (waBtn) {
+    waBtn.addEventListener('click', () => {
+      window.open(whatsappShareUrl(_shareText), '_blank');
+    });
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => closeModal('modal-share'));
+  }
+}
+initShare();
 
 /* =============================================
    DELETE DPR
@@ -235,6 +282,44 @@ function init() {
       el.addEventListener('change', () => render());
     }
   });
+
+  // Module filter chips (separate per-module reports + exports)
+  document.querySelectorAll('#moduleFilterBar .mod-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#moduleFilterBar .mod-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      const hidden = document.getElementById('filt_module');
+      if (hidden) hidden.value = chip.dataset.mod || '';
+      render();
+    });
+  });
+
+  // Load older records on demand (keeps the default boot load small & fast)
+  const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+  if (loadHistoryBtn) {
+    loadHistoryBtn.addEventListener('click', async () => {
+      if (State.dprsFullyLoaded) {
+        AppUtils.toast('All records are already loaded.');
+        return;
+      }
+      AppUtils.showBusy('Loading older records…');
+      try {
+        const all = await DataService.getAll(COLLECTIONS.DPR, { orderBy: 'date', orderDir: 'desc' });
+        State.dprs = all;
+        State.dprsFullyLoaded = true;
+        populateZoneFilter();
+        populateDMAFilter();
+        render();
+        AppUtils.toast(`Loaded ${all.length} total records.`);
+        loadHistoryBtn.style.display = 'none';
+      } catch (e) {
+        console.error('Load history error:', e);
+        AppUtils.toast('Could not load older records.', true);
+      } finally {
+        AppUtils.hideBusy();
+      }
+    });
+  }
 
   // Navigation
   window.addEventListener('app:navigate', (e) => {

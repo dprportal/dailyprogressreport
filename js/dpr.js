@@ -3,9 +3,9 @@
    Dynamic Form | Field Visibility | CRUD | S.No Auto-increment
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js';
-import { State } from './auth.js';
-import { AppUtils, MASTER_DATA, navigateTo } from './app.js';
+import { DataService, COLLECTIONS } from './firebase.js?v=10';
+import { State } from './auth.js?v=10';
+import { AppUtils, MASTER_DATA, navigateTo } from './app.js?v=10';
 
 /* =============================================
    FIELD VISIBILITY CONFIG  (driven by WORK TYPE)
@@ -14,15 +14,15 @@ import { AppUtils, MASTER_DATA, navigateTo } from './app.js';
    ============================================= */
 const WORKTYPE_CONFIG = {
   'Pipe Laying': {
-    'card-location': true, 'card-pipe': true, 'card-restoration': false,
+    'card-location': true, 'card-pipe': true, 'card-restoration': false, 'card-hydro': false,
     'card-fittings': true, 'card-manpower': true, 'card-contractor': true, 'card-remarks': true
   },
   'Hydro Test': {
-    'card-location': true, 'card-pipe': true, 'card-restoration': false,
+    'card-location': true, 'card-pipe': true, 'card-restoration': false, 'card-hydro': true,
     'card-fittings': false, 'card-manpower': true, 'card-contractor': true, 'card-remarks': true
   },
   'Road Restoration': {
-    'card-location': true, 'card-pipe': false, 'card-restoration': true,
+    'card-location': true, 'card-pipe': false, 'card-restoration': true, 'card-hydro': false,
     'card-fittings': false, 'card-manpower': true, 'card-contractor': true, 'card-remarks': true
   }
 };
@@ -31,7 +31,8 @@ const WORKTYPE_CONFIG = {
 const CARD_INPUTS = {
   'card-location': ['f_package', 'f_zone', 'f_dma'],
   'card-pipe': ['f_pipeDia', 'f_layingLength'],
-  'card-restoration': ['f_restoredLength', 'f_restoredWidth'],
+  'card-restoration': ['f_restoredLength', 'f_restoredWidth', 'f_surfaceType', 'f_restoredArea'],
+  'card-hydro': ['f_testedLength', 'f_testPressure', 'f_startTime', 'f_endTime', 'f_testResult'],
   'card-fittings': ['f_ferrule', 'f_ballValve', 'f_meterBox', 'f_waterMeter'],
   'card-manpower': ['f_noOfTeam', 'f_manpower', 'f_workTime'],
   'card-contractor': ['f_contractor'],
@@ -42,7 +43,8 @@ const CARD_INPUTS = {
 const BASE_REQUIRED = new Set([
   'f_package', 'f_zone', 'f_dma',
   'f_pipeDia', 'f_layingLength',
-  'f_restoredLength', 'f_restoredWidth',
+  'f_restoredLength', 'f_restoredWidth', 'f_surfaceType',
+  'f_testedLength', 'f_testPressure', 'f_startTime', 'f_endTime', 'f_testResult',
   'f_noOfTeam', 'f_manpower', 'f_workTime',
   'f_contractor'
 ]);
@@ -249,6 +251,20 @@ function updateFieldVisibility() {
 
   // Honour admin field-editor visibility/required/labels (composes on top)
   applyFieldDefsToForm();
+
+  // Hydro Test uses Tested Length + Start/End Time instead of Laying Length / Work Time
+  const hideForHydro = ['layingLength', 'workTime'];
+  hideForHydro.forEach(name => {
+    const wrap = document.getElementById('field-' + name);
+    const input = document.getElementById('f_' + name);
+    if (workType === 'Hydro Test') {
+      if (wrap) { wrap.style.display = 'none'; wrap.dataset.hydroHidden = '1'; }
+      if (input) { input.disabled = true; input.required = false; }
+    } else if (wrap && wrap.dataset.hydroHidden === '1') {
+      wrap.style.display = '';
+      delete wrap.dataset.hydroHidden;
+    }
+  });
 }
 
 /* =============================================
@@ -427,6 +443,15 @@ function gatherFormData() {
   // Road restoration
   if (enabled('f_restoredLength')) data.restoredLength = num('f_restoredLength');
   if (enabled('f_restoredWidth')) data.restoredWidth = num('f_restoredWidth');
+  if (enabled('f_surfaceType')) data.surfaceType = text('f_surfaceType');
+  if (enabled('f_restoredArea')) data.restoredArea = num('f_restoredArea');
+
+  // Hydro test
+  if (enabled('f_testedLength')) data.testedLength = num('f_testedLength');
+  if (enabled('f_testPressure')) data.testPressure = num('f_testPressure');
+  if (enabled('f_startTime')) data.startTime = text('f_startTime');
+  if (enabled('f_endTime')) data.endTime = text('f_endTime');
+  if (enabled('f_testResult')) data.testResult = text('f_testResult');
 
   // Fittings & meters
   if (enabled('f_ferrule')) data.ferrule = num('f_ferrule');
@@ -556,6 +581,15 @@ async function loadRecordIntoForm(record) {
   // Restoration fields
   if (record.restoredLength !== undefined) document.getElementById('f_restoredLength').value = record.restoredLength;
   if (record.restoredWidth !== undefined) document.getElementById('f_restoredWidth').value = record.restoredWidth;
+  if (record.surfaceType) document.getElementById('f_surfaceType').value = record.surfaceType;
+  if (record.restoredArea !== undefined) document.getElementById('f_restoredArea').value = record.restoredArea;
+
+  // Hydro test
+  if (record.testedLength !== undefined) document.getElementById('f_testedLength').value = record.testedLength;
+  if (record.testPressure !== undefined) document.getElementById('f_testPressure').value = record.testPressure;
+  if (record.startTime) document.getElementById('f_startTime').value = record.startTime;
+  if (record.endTime) document.getElementById('f_endTime').value = record.endTime;
+  if (record.testResult) document.getElementById('f_testResult').value = record.testResult;
 
   // Stretch
   if (record.stretch !== undefined) document.getElementById('f_stretch').value = record.stretch;
@@ -594,6 +628,12 @@ function enterEditMode(record) {
   document.getElementById('cancelEditBtn').style.display = 'inline-flex';
   document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-check"></i> Update Daily Progress Report';
 
+  // Admin editing = full form: reveal the work-type selector, hide the module banner
+  const wtField = document.getElementById('worktypeField');
+  if (wtField) wtField.style.display = '';
+  const banner = document.getElementById('moduleBanner');
+  if (banner) banner.style.display = 'none';
+
   // Switch to the entry view (activates the tab + view, then re-renders)
   navigateTo('entry');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -630,6 +670,13 @@ function softReset() {
   document.getElementById('f_layingLength').value = '';
   document.getElementById('f_restoredLength').value = '';
   document.getElementById('f_restoredWidth').value = '';
+  const _sa = document.getElementById('f_restoredArea'); if (_sa) _sa.value = '';
+  const _st = document.getElementById('f_surfaceType'); if (_st) _st.selectedIndex = 0;
+  const _tl = document.getElementById('f_testedLength'); if (_tl) _tl.value = '';
+  const _tp = document.getElementById('f_testPressure'); if (_tp) _tp.value = '';
+  const _sti = document.getElementById('f_startTime'); if (_sti) _sti.value = '';
+  const _eti = document.getElementById('f_endTime'); if (_eti) _eti.value = '';
+  const _tr = document.getElementById('f_testResult'); if (_tr) _tr.selectedIndex = 0;
   document.getElementById('f_ferrule').value = '';
   document.getElementById('f_ballValve').value = '';
   document.getElementById('f_meterBox').value = '';
@@ -677,6 +724,17 @@ function setupLayingWorkHandler() {
       updateFieldVisibility();
     });
   }
+
+  // Restored Area = Restored Length × Restored Width (auto)
+  const rl = document.getElementById('f_restoredLength');
+  const rw = document.getElementById('f_restoredWidth');
+  const recalcArea = () => {
+    const area = (AppUtils.cleanNum(rl ? rl.value : 0) * AppUtils.cleanNum(rw ? rw.value : 0));
+    const out = document.getElementById('f_restoredArea');
+    if (out) out.value = area ? area.toFixed(2) : '';
+  };
+  if (rl) rl.addEventListener('input', recalcArea);
+  if (rw) rw.addEventListener('input', recalcArea);
 }
 
 /* =============================================
@@ -739,10 +797,52 @@ async function init() {
       refreshSNo();
     }
   });
+
+  // Default landing: open the Pipe Laying module form
+  window.addEventListener('app:boot', () => {
+    openModule('Pipe Laying');
+  });
 }
 
 // Initialize
 init();
+
+/* =============================================
+   MODULE MODE — open a module-locked entry form
+   (Pipe Laying / Road Restoration / Hydro Test)
+   ============================================= */
+const MODULE_META = {
+  'Pipe Laying':      { icon: 'fa-water', label: 'Pipe Laying' },
+  'Road Restoration': { icon: 'fa-road',  label: 'Road Restoration' },
+  'Hydro Test':       { icon: 'fa-gauge', label: 'Hydro Test' }
+};
+
+function applyModuleChrome(workType) {
+  const banner = document.getElementById('moduleBanner');
+  if (banner) {
+    const m = MODULE_META[workType] || { icon: 'fa-file-pen', label: workType };
+    banner.innerHTML = `<i class="fa-solid ${m.icon}"></i> <span>${AppUtils.esc(m.label)} — Daily Progress Report</span>`;
+    banner.style.display = '';
+  }
+  const wtField = document.getElementById('worktypeField');
+  if (wtField) wtField.style.display = 'none';   // module chosen via the menu
+}
+
+function openModule(workType) {
+  if (State.editingRecordId) cancelEdit();
+
+  navigateTo('entry');
+
+  // Fresh entry, then lock to the chosen module's work type
+  fullReset();
+  const sel = document.getElementById('f_worktype');
+  if (sel) sel.value = workType;
+  updateFieldVisibility();
+
+  applyModuleChrome(workType);
+
+  window.dispatchEvent(new CustomEvent('module:active', { detail: { module: workType } }));
+}
 
 /* =============================================
    EXPORTS
@@ -752,6 +852,7 @@ export {
   loadRecordIntoForm,
   cancelEdit,
   fullReset,
+  openModule,
   updateFieldVisibility,
   renderCustomFields,
   gatherCustomFieldsData,

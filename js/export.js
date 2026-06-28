@@ -3,8 +3,8 @@
    CSV Export | Excel Export with SheetJS | Dynamic Columns
    ============================================= */
 
-import { State } from './auth.js';
-import { AppUtils } from './app.js';
+import { State } from './auth.js?v=10';
+import { AppUtils } from './app.js?v=10';
 
 /* =============================================
    GET FILTERED DATA
@@ -18,9 +18,12 @@ function getFilteredData() {
   const con = document.getElementById('filt_contractor').value;
   const eng = document.getElementById('filt_engineer').value;
   const workType = document.getElementById('filt_worktype').value;
+  const moduleEl = document.getElementById('filt_module');
+  const moduleSel = moduleEl ? moduleEl.value : '';
   const q = document.getElementById('filt_search').value.trim().toLowerCase();
 
   return (State.dprs || []).filter(r => {
+    if (moduleSel && r.workType !== moduleSel) return false;
     if (from && r.date < from) return false;
     if (to && r.date > to) return false;
     if (pkg && String(r.packageNo) !== String(pkg)) return false;
@@ -62,13 +65,17 @@ function csvField(v) {
    GET DYNAMIC COLUMN DEFINITIONS
    ============================================= */
 function getColumnDefinitions() {
+  const moduleEl = document.getElementById('filt_module');
+  const mod = moduleEl ? moduleEl.value : '';
+  const allMods = !mod;
+
   const columns = [
     { key: 'sno', label: 'S.No', width: 8 },
     { key: 'date', label: 'Date', width: 12 },
-    { key: 'month', label: 'Month', width: 15 },
-    { key: 'workType', label: 'Work Type', width: 15 },
-    { key: 'layingWork', label: 'Laying Work', width: 18 }
+    { key: 'month', label: 'Month', width: 15 }
   ];
+  if (allMods) columns.push({ key: 'workType', label: 'Work Type', width: 15 });
+  columns.push({ key: 'layingWork', label: 'Laying Work', width: 18 });
 
   // Add conditional columns based on field definitions
   const fieldDefs = State.fieldDefs || [];
@@ -87,23 +94,34 @@ function getColumnDefinitions() {
     columns.push({ key: 'stretch', label: 'Transmission Stretch', width: 30 });
   }
 
-  // Pipe fields
+  // Pipe fields (Pipe Laying / Hydro Test only)
   const hasPipe = fieldDefs.find(f => f.fieldId === 'pipeDia');
-  if (hasPipe && hasPipe.visible !== false) {
+  if (hasPipe && hasPipe.visible !== false && (allMods || mod === 'Pipe Laying' || mod === 'Hydro Test')) {
     columns.push({ key: 'pipeDia', label: 'Pipe Dia (mm)', width: 14 });
     columns.push({ key: 'layingLength', label: 'Laying Length (m)', width: 16 });
   }
 
-  // Road restoration fields
+  // Road restoration fields (Road Restoration only)
   const hasRestoration = fieldDefs.find(f => f.fieldId === 'restoredLength');
-  if (hasRestoration && hasRestoration.visible !== false) {
+  if (hasRestoration && hasRestoration.visible !== false && (allMods || mod === 'Road Restoration')) {
     columns.push({ key: 'restoredLength', label: 'Restored Length (m)', width: 16 });
     columns.push({ key: 'restoredWidth', label: 'Restored Width (m)', width: 16 });
+    columns.push({ key: 'restoredArea', label: 'Restored Area (sqm)', width: 16 });
+    columns.push({ key: 'surfaceType', label: 'Surface Type', width: 16 });
   }
 
-  // Fittings fields
+  // Hydro test fields (Hydro Test only)
+  if (allMods || mod === 'Hydro Test') {
+    columns.push({ key: 'testedLength', label: 'Tested Length (m)', width: 16 });
+    columns.push({ key: 'testPressure', label: 'Test Pressure (Bar)', width: 16 });
+    columns.push({ key: 'startTime', label: 'Start Time', width: 12 });
+    columns.push({ key: 'endTime', label: 'End Time', width: 12 });
+    columns.push({ key: 'testResult', label: 'Test Result', width: 16 });
+  }
+
+  // Fittings fields (Pipe Laying only)
   const hasFittings = fieldDefs.find(f => f.fieldId === 'ferrule');
-  if (hasFittings && hasFittings.visible !== false) {
+  if (hasFittings && hasFittings.visible !== false && (allMods || mod === 'Pipe Laying')) {
     columns.push({ key: 'ferrule', label: 'Ferrule', width: 10 });
     columns.push({ key: 'ballValve', label: 'Ball Valve', width: 11 });
     columns.push({ key: 'meterBox', label: 'Meter Box', width: 11 });
@@ -351,6 +369,17 @@ function init() {
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
   if (clearFiltersBtn) {
     clearFiltersBtn.addEventListener('click', clearFilters);
+  }
+
+  // Print / Save as PDF (uses the browser print dialog)
+  const printBtn = document.getElementById('printReportBtn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      const prevTitle = document.title;
+      document.title = 'DPR Report ' + new Date().toISOString().slice(0, 10);
+      window.print();
+      setTimeout(() => { document.title = prevTitle; }, 500);
+    });
   }
 
   // Populate engineer filter on boot
