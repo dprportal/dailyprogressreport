@@ -3,13 +3,13 @@
    Navigation | Utilities | Toast | Modals | Initialization
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js?v=13';
-import { State, Utils } from './auth.js?v=13';
+import { DataService, COLLECTIONS } from './firebase.js?v=15';
+import { State, Utils } from './auth.js?v=15';
 
 // How many most-recent DPR records to load on boot. Keeps Firestore reads
 // bounded (and load fast) no matter how many years of data accumulate.
 // Older records are fetched on demand from the Reports screen.
-const RECENT_DPR_LIMIT = 1000;
+const RECENT_DPR_LIMIT = 500;
 
 /* =============================================
    SHARED STATE
@@ -324,27 +324,38 @@ function setupEventListeners() {
    APP BOOT
    ============================================= */
 async function loadAllData() {
-  const results = await DataService.loadMultiple([
-    { key: 'engineers', collectionName: COLLECTIONS.ENGINEERS, options: { orderBy: 'name' } },
-    { key: 'dprs', collectionName: COLLECTIONS.DPR, options: { orderBy: 'date', orderDir: 'desc', limit: RECENT_DPR_LIMIT } },
-    { key: 'fieldDefs', collectionName: COLLECTIONS.FIELD_DEFS, options: { orderBy: 'order' } },
-    { key: 'settings', collectionName: COLLECTIONS.SETTINGS }
+  // Small collections load normally (they're tiny and needed before first render)
+  const [engineers, fieldDefs, settingsArr] = await Promise.all([
+    DataService.getAll(COLLECTIONS.ENGINEERS, { orderBy: 'name' }),
+    DataService.getAll(COLLECTIONS.FIELD_DEFS, { orderBy: 'order' }),
+    DataService.getAll(COLLECTIONS.SETTINGS)
   ]);
 
-  State.engineers = results.engineers || [];
-  State.dprs = results.dprs || [];          // already newest-first (date desc)
-  State.fieldDefs = results.fieldDefs || [];
-  State.dprsFullyLoaded = false;
+  State.engineers = engineers || [];
+  State.fieldDefs = fieldDefs || [];
 
   // Process settings
-  const settingsArr = results.settings || [];
-  if (settingsArr.length > 0) {
+  if (settingsArr && settingsArr.length > 0) {
     const s = settingsArr[0];
     State.settings = {
       snoStart: s.snoStart || 1,
       pageSize: s.pageSize || 50
     };
   }
+
+  // DPRs load cache-first: instant on restart, then refreshed from the server
+  // in the background. Keeps the app responsive instead of waiting on the network.
+  const dprs = await DataService.getAllFast(
+    COLLECTIONS.DPR,
+    { orderBy: 'date', orderDir: 'desc', limit: RECENT_DPR_LIMIT },
+    (fresh) => {
+      State.dprs = fresh;                  // newest-first
+      State.dprsFullyLoaded = false;
+      window.dispatchEvent(new CustomEvent('dpr:changed'));
+    }
+  );
+  State.dprs = dprs || [];                 // already newest-first (date desc)
+  State.dprsFullyLoaded = false;
 
   State.dataLoaded = true;
 }

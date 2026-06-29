@@ -3,15 +3,36 @@
    Statistics | Chart.js Charts | Progress Bars
    ============================================= */
 
-import { State } from './auth.js?v=13';
-import { AppUtils } from './app.js?v=13';
+import { State } from './auth.js?v=15';
+import { AppUtils } from './app.js?v=15';
 
 /* =============================================
    CHART INSTANCES
    ============================================= */
-let chartOverview = null;
+let chartDaily = null;
 let chartContractor = null;
 let chartWorkType = null;
+
+/* metres of progress for a record, across any work type */
+function primaryLen(r) {
+  return parseFloat(r.layingLength || r.restoredLength || r.testedLength || 0) || 0;
+}
+/* local YYYY-MM-DD (matches AppUtils.todayISO) */
+function toLocalISO(d) {
+  const x = new Date(d);
+  x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+  return x.toISOString().slice(0, 10);
+}
+function aggregateByPrimaryLen(key, recs) {
+  const agg = {};
+  recs.forEach(r => {
+    const val = r[key];
+    if (val !== undefined && val !== null && val !== '') {
+      agg[val] = (agg[val] || 0) + primaryLen(r);
+    }
+  });
+  return Object.entries(agg).sort((a, b) => b[1] - a[1]);
+}
 
 /* =============================================
    STATISTICS CALCULATION
@@ -22,17 +43,23 @@ function calculateStats() {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
+  const inMonth = r => {
+    const d = new Date(r.date + 'T00:00:00');
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  };
+
+  // last-7-days cutoff (inclusive of today)
+  const wk = new Date(); wk.setDate(wk.getDate() - 6);
+  const wkISO = toLocalISO(wk);
 
   return {
-    totalDPR: recs.length,
-    todayDPR: recs.filter(r => r.date === today).length,
-    monthlyDPR: recs.filter(r => {
-      const d = new Date(r.date + 'T00:00:00');
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).length,
-    totalLength: recs.reduce((s, r) => s + (parseFloat(r.layingLength) || 0), 0),
-    totalManpower: recs.reduce((s, r) => s + (parseInt(r.manpower) || 0), 0),
-    avgWorkTime: recs.length > 0 ? recs.reduce((s, r) => s + (parseFloat(r.workTime) || 0), 0) / recs.length : 0
+    // progress in metres (primary metric)
+    todayM: recs.filter(r => r.date === today).reduce((s, r) => s + primaryLen(r), 0),
+    monthM: recs.filter(inMonth).reduce((s, r) => s + primaryLen(r), 0),
+    last7M: recs.filter(r => r.date >= wkISO).reduce((s, r) => s + primaryLen(r), 0),
+    totalM: recs.reduce((s, r) => s + primaryLen(r), 0),
+    // kept for any internal use
+    totalManpower: recs.reduce((s, r) => s + (parseInt(r.manpower) || 0), 0)
   };
 }
 
@@ -68,25 +95,19 @@ function renderStats() {
   const stats = calculateStats();
   const container = document.getElementById('dashStats');
   if (!container) return;
+  const fmt = v => Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 });
 
   container.innerHTML = [
-    ["Total DPR Entries", stats.totalDPR.toLocaleString()],
-    ["Today's DPR", stats.todayDPR.toLocaleString()],
-    ["Monthly DPR", stats.monthlyDPR.toLocaleString()],
-    ["Total Length (m)", stats.totalLength.toLocaleString(undefined, { maximumFractionDigits: 1 })]
+    ["Today's Progress (m)", fmt(stats.todayM)],
+    ["This Month (m)", fmt(stats.monthM)],
+    ["Last 7 Days (m)", fmt(stats.last7M)],
+    ["Total Recorded (m)", fmt(stats.totalM)]
   ].map(([l, v]) => `
     <div class="dstat">
       <div class="v">${AppUtils.esc(v)}</div>
       <div class="l">${AppUtils.esc(l)}</div>
     </div>
   `).join('');
-
-  // Update big stat displays
-  const todayDprCount = document.getElementById('todayDprCount');
-  if (todayDprCount) todayDprCount.textContent = stats.todayDPR;
-
-  const monthlyDprCount = document.getElementById('monthlyDprCount');
-  if (monthlyDprCount) monthlyDprCount.textContent = stats.monthlyDPR;
 }
 
 /* =============================================
@@ -116,34 +137,60 @@ function renderProgressBars(containerId, entries, total, colorVar) {
 /* =============================================
    RENDER CHARTS
    ============================================= */
-function renderOverviewChart() {
-  const canvas = document.getElementById('chartOverview');
+function renderDailyChart() {
+  const canvas = document.getElementById('chartDaily');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-
   const recs = State.dprs || [];
-  const stats = calculateStats();
 
-  if (chartOverview) chartOverview.destroy();
+  // sum metres per date, then plot the last 14 calendar days
+  const byDate = {};
+  recs.forEach(r => { if (r.date) byDate[r.date] = (byDate[r.date] || 0) + primaryLen(r); });
 
-  chartOverview = new Chart(ctx, {
-    type: 'doughnut',
+  const days = 14;
+  const labels = [], data = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = toLocalISO(d);
+    labels.push(d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }));
+    data.push(Math.round((byDate[iso] || 0) * 100) / 100);
+  }
+
+  if (chartDaily) chartDaily.destroy();
+
+  if (!data.some(v => v > 0)) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#5B6C6B';
+    ctx.font = '12px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText('No progress recorded in the last 14 days', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  chartDaily = new Chart(ctx, {
+    type: 'bar',
     data: {
-      labels: ['Today', 'This Month', 'Earlier'],
+      labels,
       datasets: [{
-        data: [stats.todayDPR, stats.monthlyDPR - stats.todayDPR, stats.totalDPR - stats.monthlyDPR],
-        backgroundColor: ['#0E6B66', '#2E7DA6', '#DCE6E2'],
-        borderWidth: 0
+        label: 'Metres',
+        data,
+        backgroundColor: '#1782A8',
+        borderRadius: 4,
+        maxBarThickness: 46
       }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { font: { size: 11 }, padding: 12 }
-        }
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} m` } }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { font: { size: 10 } }, title: { display: true, text: 'metres' } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 0 }, grid: { display: false } }
       }
     }
   });
@@ -155,7 +202,7 @@ function renderContractorChart() {
   const ctx = canvas.getContext('2d');
 
   const recs = State.dprs || [];
-  const byContractor = aggregateBy('contractor', recs).slice(0, 8);
+  const byContractor = aggregateByPrimaryLen('contractor', recs).slice(0, 8);
 
   if (chartContractor) chartContractor.destroy();
 
@@ -173,9 +220,9 @@ function renderContractorChart() {
     data: {
       labels: byContractor.map(([k]) => k),
       datasets: [{
-        label: 'Entries',
-        data: byContractor.map(([, v]) => v),
-        backgroundColor: '#0E6B66',
+        label: 'Metres',
+        data: byContractor.map(([, v]) => Math.round(v * 100) / 100),
+        backgroundColor: '#0C6B9A',
         borderRadius: 4
       }]
     },
@@ -183,7 +230,8 @@ function renderContractorChart() {
       responsive: true,
       maintainAspectRatio: true,
       plugins: {
-        legend: { display: false }
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} m` } }
       },
       scales: {
         y: {
@@ -204,7 +252,7 @@ function renderWorkTypeChart() {
   const ctx = canvas.getContext('2d');
 
   const recs = State.dprs || [];
-  const byWorkType = aggregateBy('layingWork', recs);
+  const byWorkType = aggregateByPrimaryLen('layingWork', recs);
 
   if (chartWorkType) chartWorkType.destroy();
 
@@ -253,21 +301,23 @@ function renderWorkTypeChart() {
 function render() {
   const recs = State.dprs || [];
 
-  // Stats cards
+  // Stats cards (metres)
   renderStats();
 
-  // Progress bars
-  const byPackage = aggregateByLength('packageNo', recs);
+  // Daily progress in metres (headline chart)
+  renderDailyChart();
+
+  // Progress bars — metres by package / zone / DMA
+  const byPackage = aggregateByPrimaryLen('packageNo', recs);
   renderProgressBars('byPackage', byPackage.map(([k, v]) => [`Package ${k}`, v]), 1, "var(--app-sky)");
 
-  const byZone = aggregateByLength('zoneName', recs);
+  const byZone = aggregateByPrimaryLen('zoneName', recs);
   renderProgressBars('byZone', byZone, 1, "var(--app-teal)");
 
-  const byDMA = aggregateBy('dma', recs).slice(0, 20);
+  const byDMA = aggregateByPrimaryLen('dma', recs).slice(0, 20);
   renderProgressBars('byDMA', byDMA.map(([k, v]) => [`DMA ${k}`, v]), 1, "var(--app-moss)");
 
   // Charts
-  renderOverviewChart();
   renderContractorChart();
   renderWorkTypeChart();
 }

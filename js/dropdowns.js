@@ -6,9 +6,9 @@
    Lists are stored in Firestore (settings/dropdowns)
    so every user gets the same options.
    ============================================= */
-import { DataService, COLLECTIONS } from './firebase.js?v=13';
-import { State } from './auth.js?v=13';
-import { AppUtils } from './app.js?v=13';
+import { DataService, COLLECTIONS } from './firebase.js?v=15';
+import { State } from './auth.js?v=15';
+import { AppUtils } from './app.js?v=15';
 
 const DOC_ID = 'dropdowns';
 

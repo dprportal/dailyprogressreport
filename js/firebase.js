@@ -14,6 +14,8 @@ import {
   collection,
   addDoc,
   getDocs,
+  getDocsFromCache,
+  getDocsFromServer,
   deleteDoc,
   doc,
   setDoc,
@@ -145,6 +147,40 @@ const DataService = {
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     });
   },
+
+  /* Cache-first read: returns locally-cached docs instantly (fast restart),
+     then fetches fresh docs from the server in the background and hands them
+     to onFresh(). If there's no cache yet (first ever load), it waits for the
+     server so the first load still works. */
+  async getAllFast(collectionName, options = {}, onFresh = null) {
+    let qref = collection(db, collectionName);
+    const cons = [];
+    if (options.orderBy) cons.push(orderBy(options.orderBy, options.orderDir || 'asc'));
+    if (options.limit) cons.push(limit(options.limit));
+    if (cons.length) qref = query(qref, ...cons);
+
+    let cached = [];
+    try {
+      const cacheSnap = await getDocsFromCache(qref);
+      cached = cacheSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { /* no cache available */ }
+
+    const serverPromise = getDocsFromServer(qref)
+      .then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      .catch(() => null);
+
+    if (cached.length > 0) {
+      // hand back cached immediately; refresh the view when the server responds
+      if (onFresh) {
+        serverPromise.then(fresh => { if (fresh) onFresh(fresh); });
+      }
+      return cached;
+    }
+    // no cache -> wait for the server this once
+    const fresh = await serverPromise;
+    return fresh || [];
+  },
+
 
   async query(collectionName, conditions = [], orderByField = null) {
     return withRetry(async () => {
