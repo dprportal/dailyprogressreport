@@ -3,8 +3,8 @@
    Statistics | Chart.js Charts | Progress Bars
    ============================================= */
 
-import { State } from './auth.js?v=11';
-import { AppUtils } from './app.js?v=11';
+import { State } from './auth.js?v=13';
+import { AppUtils } from './app.js?v=13';
 
 /* =============================================
    CHART INSTANCES

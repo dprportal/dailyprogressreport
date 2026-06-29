@@ -3,8 +3,8 @@
    Navigation | Utilities | Toast | Modals | Initialization
    ============================================= */
 
-import { DataService, COLLECTIONS } from './firebase.js?v=11';
-import { State, Utils } from './auth.js?v=11';
+import { DataService, COLLECTIONS } from './firebase.js?v=13';
+import { State, Utils } from './auth.js?v=13';
 
 // How many most-recent DPR records to load on boot. Keeps Firestore reads
 // bounded (and load fast) no matter how many years of data accumulate.

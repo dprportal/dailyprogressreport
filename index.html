@@ -17,15 +17,36 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>Shimla 24x7 Water Supply — DPR Management</title>
 
+  <!-- ============================================================
+       SOCIAL / WHATSAPP LINK PREVIEW  (Open Graph + Twitter Card)
+       To change the preview text/image, edit the lines below.
+       og:image must be a full https:// URL of an image at your domain.
+       ============================================================ -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DPR Management System">
+  <meta property="og:title" content="DPR Management System — Shimla 24x7 Water Supply Project">
+  <meta property="og:description" content="Daily Progress Report system for Pipe Laying, Hydro Testing and Road Restoration. Field data collection, reports and analytics.">
+  <meta property="og:url" content="https://dprmanagementsystem.in/">
+  <meta property="og:image" content="https://dprmanagementsystem.in/og-image.png?v=1">
+  <meta property="og:image:secure_url" content="https://dprmanagementsystem.in/og-image.png?v=1">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="DPR Management System — Shimla 24x7 Water Supply Project">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DPR Management System — Shimla 24x7 Water Supply Project">
+  <meta name="twitter:description" content="Daily Progress Report system for Pipe Laying, Hydro Testing and Road Restoration.">
+  <meta name="twitter:image" content="https://dprmanagementsystem.in/og-image.png?v=1">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css?v=12">
-  <link rel="stylesheet" href="css/dashboard.css?v=12">
-  <link rel="stylesheet" href="css/forms.css?v=12">
-  <link rel="stylesheet" href="css/admin.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="stylesheet" href="css/dashboard.css?v=13">
+  <link rel="stylesheet" href="css/forms.css?v=13">
+  <link rel="stylesheet" href="css/admin.css?v=13">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -1042,6 +1063,9 @@
         <button class="admin-nav-btn active" data-admin-tab="field-editor">
           <i class="fa-solid fa-list-check"></i> Field Editor
         </button>
+        <button class="admin-nav-btn" data-admin-tab="dropdowns">
+          <i class="fa-solid fa-list-ul"></i> Dropdowns
+        </button>
         <button class="admin-nav-btn" data-admin-tab="settings">
           <i class="fa-solid fa-gear"></i> Settings
         </button>
@@ -1161,6 +1185,22 @@
       </div>
 
       <!-- Settings Sub-view -->
+      <!-- Dropdown Options Sub-view -->
+      <div class="admin-subview" id="admin-dropdowns">
+        <div class="sw-card">
+          <div class="sw-card-head" style="--accent: var(--app-teal); --accent-light: var(--app-teal-light);">
+            <div class="ic"><i class="fa-solid fa-list-ul"></i></div>
+            <div>
+              <h2>Dropdown Options</h2>
+              <p class="hint">Add, rename or remove the choices in the form's dropdowns. Changes apply for everyone.</p>
+            </div>
+          </div>
+          <div class="sw-card-body">
+            <div id="dropdown-manager"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="admin-subview" id="admin-settings">
         <div class="sw-card">
           <div class="sw-card-head" style="--accent: var(--app-amber); --accent-light: var(--app-amber-light);">
@@ -1196,16 +1236,17 @@
 </div>
 
 <!-- ==================== SCRIPTS ==================== -->
-<script type="module" src="js/firebase.js?v=11"></script>
-<script type="module" src="js/auth.js?v=11"></script>
-<script type="module" src="js/app.js?v=11"></script>
-<script type="module" src="js/dpr.js?v=11"></script>
-<script type="module" src="js/dashboard.js?v=11"></script>
-<script type="module" src="js/engineers.js?v=11"></script>
-<script type="module" src="js/reports.js?v=11"></script>
-<script type="module" src="js/field-editor.js?v=11"></script>
-<script type="module" src="js/export.js?v=11"></script>
-<script type="module" src="js/menu.js?v=11"></script>
+<script type="module" src="js/firebase.js?v=13"></script>
+<script type="module" src="js/auth.js?v=13"></script>
+<script type="module" src="js/app.js?v=13"></script>
+<script type="module" src="js/dpr.js?v=13"></script>
+<script type="module" src="js/dashboard.js?v=13"></script>
+<script type="module" src="js/engineers.js?v=13"></script>
+<script type="module" src="js/reports.js?v=13"></script>
+<script type="module" src="js/field-editor.js?v=13"></script>
+<script type="module" src="js/dropdowns.js?v=13"></script>
+<script type="module" src="js/export.js?v=13"></script>
+<script type="module" src="js/menu.js?v=13"></script>
 
 <!-- ==================== PWA: service worker + install ==================== -->
 <script>

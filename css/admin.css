@@ -362,3 +362,35 @@
   background: rgba(46,125,166,0.12);
   color: var(--app-sky);
 }
+
+/* ============================================================
+   DROPDOWN OPTIONS MANAGER (admin) — appended
+   ============================================================ */
+.dd-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.dd-tab {
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--app-line); background: var(--app-surface, #fff);
+  color: var(--app-ink); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+.dd-tab:hover { border-color: var(--app-teal); }
+.dd-tab.active { background: var(--app-teal); border-color: var(--app-teal); color: #fff; }
+
+.dd-add { display: flex; gap: 10px; margin-bottom: 8px; }
+.dd-add .sw-input { flex: 1 1 auto; min-width: 0; }
+.dd-add .sw-btn { flex: 0 0 auto; }
+
+.dd-count { font-size: 12px; color: var(--app-muted); margin-bottom: 12px; }
+
+.dd-list { display: flex; flex-direction: column; gap: 8px; }
+.dd-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border: 1px solid var(--app-line); border-radius: 10px;
+  background: var(--app-surface, #fff);
+}
+.dd-row.confirming { border-color: var(--app-rose); background: var(--app-rose-light); }
+.dd-row.editing { border-color: var(--app-teal); }
+.dd-row .dd-val { font-size: 14px; font-weight: 600; color: var(--app-ink); }
+.dd-row .dd-suffix { font-size: 12px; font-weight: 500; color: var(--app-muted); margin-left: 4px; }
+.dd-row .dd-edit-input { flex: 1 1 auto; min-width: 0; margin-right: 10px; }
+.dd-row-actions { display: flex; gap: 6px; flex: 0 0 auto; }
