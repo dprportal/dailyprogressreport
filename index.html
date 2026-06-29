@@ -43,10 +43,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css?v=15">
-  <link rel="stylesheet" href="css/dashboard.css?v=15">
-  <link rel="stylesheet" href="css/forms.css?v=15">
-  <link rel="stylesheet" href="css/admin.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=14">
+  <link rel="stylesheet" href="css/dashboard.css?v=14">
+  <link rel="stylesheet" href="css/forms.css?v=14">
+  <link rel="stylesheet" href="css/admin.css?v=14">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -1217,34 +1217,17 @@
 </div>
 
 <!-- ==================== SCRIPTS ==================== -->
-<script>
-/* Last-resort failsafe: if the app's module scripts fail to load or run,
-   still leave the loading screen and show the login screen after a delay. */
-(function () {
-  setTimeout(function () {
-    if (window.__appReady) return; // scripts loaded -> they handle the screen
-    try {
-      var ls = document.getElementById('loading-screen');
-      var login = document.getElementById('login-screen');
-      if (login && ls && getComputedStyle(ls).display !== 'none') {
-        ls.style.display = 'none';
-        login.style.display = 'block';
-      }
-    } catch (e) {}
-  }, 9000);
-})();
-</script>
-<script type="module" src="js/firebase.js?v=15"></script>
-<script type="module" src="js/auth.js?v=15"></script>
-<script type="module" src="js/app.js?v=15"></script>
-<script type="module" src="js/dpr.js?v=15"></script>
-<script type="module" src="js/dashboard.js?v=15"></script>
-<script type="module" src="js/engineers.js?v=15"></script>
-<script type="module" src="js/reports.js?v=15"></script>
-<script type="module" src="js/field-editor.js?v=15"></script>
-<script type="module" src="js/dropdowns.js?v=15"></script>
-<script type="module" src="js/export.js?v=15"></script>
-<script type="module" src="js/menu.js?v=15"></script>
+<script type="module" src="js/firebase.js?v=14"></script>
+<script type="module" src="js/auth.js?v=14"></script>
+<script type="module" src="js/app.js?v=14"></script>
+<script type="module" src="js/dpr.js?v=14"></script>
+<script type="module" src="js/dashboard.js?v=14"></script>
+<script type="module" src="js/engineers.js?v=14"></script>
+<script type="module" src="js/reports.js?v=14"></script>
+<script type="module" src="js/field-editor.js?v=14"></script>
+<script type="module" src="js/dropdowns.js?v=14"></script>
+<script type="module" src="js/export.js?v=14"></script>
+<script type="module" src="js/menu.js?v=14"></script>
 
 <!-- ==================== PWA: service worker + install ==================== -->
 <script>

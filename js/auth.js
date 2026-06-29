@@ -10,7 +10,7 @@ import {
   db,
   COLLECTIONS,
   DataService
-} from './firebase.js?v=15';
+} from './firebase.js?v=14';
 
 import {
   signInWithEmailAndPassword,
@@ -395,10 +395,7 @@ const Auth = {
 
     State.sessionRestoreInProgress = true;
     try {
-      const eng = await Promise.race([
-        DataService.getById(COLLECTIONS.ENGINEERS, savedId),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('restore-timeout')), 4000))
-      ]);
+      const eng = await DataService.getById(COLLECTIONS.ENGINEERS, savedId);
       if (!eng) {
         // Profile was deleted — drop the stale session
         try { localStorage.removeItem('dpr_eng_session'); } catch (e) { /* ignore */ }
@@ -420,22 +417,6 @@ const Auth = {
 
   /* ---- Auth State Handler ---- */
   init() {
-    // Signals the inline failsafe that the app's scripts loaded and are running
-    window.__appReady = true;
-
-    // Failsafe: never get stuck on the loading screen. If auth resolution
-    // stalls (slow network, blocked requests, an unauthorized domain, etc.),
-    // fall back to the login screen so the user can act.
-    setTimeout(() => {
-      if (State.currentRole) return;             // already logged in / booting
-      const ls = document.getElementById('loading-screen');
-      if (ls && getComputedStyle(ls).display !== 'none') {
-        State.sessionRestoreInProgress = false;
-        UI.hideLoading();
-        UI.showLogin();
-      }
-    }, 7000);
-
     // Admin login form
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
